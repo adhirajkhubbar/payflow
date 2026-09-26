@@ -1,0 +1,58 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  name      String
+  email     String   @unique
+  password  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  wallet Wallet?
+}
+
+model Wallet {
+  id        Int      @id @default(autoincrement())
+  balance   Decimal  @default(0) @db.Decimal(12, 2)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  userId Int  @unique
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  sentTransactions     Transaction[] @relation("SenderTransactions")
+  receivedTransactions Transaction[] @relation("ReceiverTransactions")
+}
+
+model Transaction {
+  id        Int      @id @default(autoincrement())
+  amount    Decimal  @db.Decimal(12, 2)
+  type      TransactionType
+  status    TransactionStatus @default(COMPLETED)
+  reference String            @unique
+  createdAt DateTime          @default(now())
+
+  senderWalletId   Int?
+  receiverWalletId Int?
+
+  senderWallet   Wallet? @relation("SenderTransactions", fields: [senderWalletId], references: [id])
+  receiverWallet Wallet? @relation("ReceiverTransactions", fields: [receiverWalletId], references: [id])
+}
+
+enum TransactionType {
+  CREDIT
+  DEBIT
+  TRANSFER
+}
+
+enum TransactionStatus {
+  PENDING
+  COMPLETED
+  FAILED
+}
